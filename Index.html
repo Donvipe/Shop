@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyShop NG</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;}
+body{background:#f5f5f5;color:#1a1a1a;}
+header{background:#111;color:white;padding:15px 20px;position:sticky;top:0;z-index:100;}
+.header-top{display:flex;justify-content:space-between;align-items:center;}
+.logo{font-size:22px;font-weight:700;}
+.logo span{color:#ff4d00;}
+.nav-btns{display:flex;gap:15px;}
+.nav-btn{background:none;border:none;color:white;font-size:20px;cursor:pointer;position:relative;}
+.cart-count{position:absolute;top:-8px;right:-8px;background:#ff4d00;color:white;border-radius:50%;width:20px;height:20px;font-size:12px;display:flex;align-items:center;justify-content:center;}
+
+.container{max-width:1200px;margin:0 auto;padding:20px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px;}
+.product{background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.product img{width:100%;height:160px;object-fit:cover;}
+.product-info{padding:12px;}
+.price{color:#ff4d00;font-weight:700;font-size:16px;}
+.btn-row{display:flex;gap:8px;margin-top:8px;}
+.btn-small{flex:1;padding:8px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
+.btn-buy{background:#111;color:white;}
+.btn-loan{background:#ff4d00;color:white;}
+
+.page{display:none;}
+.page.active{display:block;}
+.card{background:white;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+input,textarea,select{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;margin-bottom:12px;font-size:15px;}
+.btn{width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;margin-top:10px;cursor:pointer;}
+.btn-dark{background:#111;}
+.btn-danger{background:#d32f2f;color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;}
+.tab-btns{display:flex;gap:10px;margin-bottom:15px;overflow-x:auto;}
+.tab-btn{flex-shrink:0;padding:12px 20px;border:none;background:#ddd;border-radius:8px;font-weight:600;}
+.tab-btn.active{background:#111;color:white;}
+.order-item{border-left:4px solid #ff4d00;padding:15px;background:white;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
+.status-badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.status-pending{background:#fff3cd;color:#856404;}
+.status-confirmed{background:#d4edda;color:#155724;}
+.account-box{background:#f0f0f0;padding:15px;border-radius:8px;margin:15px 0;border-left:4px solid #ff4d00;}
+.customer-info{background:#e8f5e9;padding:12px;border-radius:8px;margin:10px 0;}
+.customer-info p{margin:4px 0;font-weight:500;}
+.preview-img{max-width:100%;max-height:150px;border-radius:8px;margin-top:10px;}
+.close-btn{float:right;background:none;border:none;font-size:24px;cursor:pointer;}
+.edit-mode{background:#fff3e0;padding:10px;border-radius:8px;margin-bottom:10px;}
+.btn-edit{background:#ff9800;}
+.btn-delete{background:#d32f2f;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo">Naija<span>Shop</span>NG</div>
+    <div class="nav-btns">
+      <button class="nav-btn" onclick="checkAuthState()">⚙️</button>
+      <button class="nav-btn" onclick="showPage('cart')">🛒<span class="cart-count" id="cartCount">0</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- HOME -->
+  <div id="home" class="page active">
+    <div class="grid" id="productGrid"></div>
+  </div>
+
+  <!-- CART -->
+  <div id="cart" class="page">
+    <h2>Your Cart <button class="close-btn" onclick="showPage('home')">×</button></h2>
+    <div id="cartItems"></div>
+    <div id="cartTotal" style="text-align:right;margin-top:15px;font-size:18px;font-weight:700;"></div>
+
+    <div id="checkoutForm" style="display:none;">
+      <h3>Delivery Information</h3>
+      <input type="text" id="custName" placeholder="Full Name" required>
+      <input type="tel" id="custPhone" placeholder="Phone Number" required>
+      <textarea id="custAddress" placeholder="Delivery Address" rows="3" required></textarea>
+
+      <h3>Payment Details</h3>
+      <div class="account-box">
+        <p>Bank: <span id="bankName">GTBank</span></p>
+        <p>Account Name: <span id="accName">MyShop NG Ltd</span></p>
+        <p>Account Number: <span id="accNumber">0123456789</span></p>
+      </div>
+
+      <label>Upload Proof of Payment:</label>
+      <input type="file" id="proofUpload" accept="image/*" onchange="previewProof(event)">
+      <img id="proofPreview" class="preview-img" style="display:none;">
+
+      <button class="btn" onclick="submitOrder()">Submit Order</button>
+    </div>
+
+    <button class="btn" id="proceedBtn" onclick="showCheckoutForm()">Proceed to Checkout</button>
+  </div>
+
+  <!-- ADMIN LOGIN -->
+  <div id="adminLogin" class="page">
+    <div class="card">
+      <h2>Admin Login</h2>
+      <input type="email" id="adminEmail" placeholder="Admin Email">
+      <input type="password" id="adminPass" placeholder="Password">
+      <button class="btn btn-dark" onclick="adminLogin()">Login</button>
+      <button class="btn" onclick="showPage('home')">Back to Shop</button>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD -->
+  <div id="admin" class="page">
+    <h2>Admin Dashboard <button class="close-btn" onclick="logout()">Logout</button></h2>
+
+    <div class="card">
+      <h3 id="formTitle">Add Product</h3>
+      <div id="productForm" class="edit-mode" style="display:none;">
+        <input type="text" id="prodName" placeholder="Product Name">
+        <input type="number" id="prodPrice" placeholder="Price">
+        <input type="url" id="prodImg" placeholder="Image URL">
+        <button class="btn" id="submitBtn" onclick="saveProduct()">Add Product</button>
+        <button class="btn" style="background:#9e9e9e;" onclick="cancelEdit()">Cancel</button>
+      </div>
+      <button class="btn" onclick="toggleProductForm()">+ Add New Product</button>
+    </div>
+
+    <div class="card">
+      <h3>Manage Products</h3>
+      <div id="adminProducts"></div>
+    </div>
+
+    <div class="card">
+      <h3>Orders</h3>
+      <div id="ordersTab"></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD_biOq6IRL13E8pKW1tqaSFQUig5_Kj6c",
+  authDomain: "jay-shop-a8ae1.firebaseapp.com",
+  projectId: "jay-shop-a8ae1",
+  storageBucket: "jay-shop-a8ae1.firebasestorage.app",
+  messagingSenderId: "523295466189",
+  appId: "1:523295466189:web:60974577409d991233bf84",
+  measurementId: "G-6T1JZ6FVN4"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const ADMIN_EMAIL = 'manizzy2005@gmail.com';
+
+let products = [];
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let orders = JSON.parse(localStorage.getItem('orders')) || [];
+let editingId = null;
+let proofData = '';
+
+window.init = async function(){
+  await loadProductsFromFirestore();
+  updateCartCount();
+}
+
+async function loadProductsFromFirestore(){
+  const snap = await getDocs(collection(db, 'products'));
+  products = snap.docs.map(d => ({id: d.id,...d.data()}));
+  renderProducts(products);
+}
+
+function renderProducts(items){
+  document.getElementById('productGrid').innerHTML = items.map(p=>`
+    <div class="product">
+      <img src="${p.img}">
+      <div class="product-info">
+        <h4>${p.name}</h4>
+        <div class="price">₦${p.price.toLocaleString()}</div>
+        <div class="btn-row">
+          <button class="btn-small btn-buy" onclick="addToCart('${p.id}')">Buy Now</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.addToCart = function(id){
+  const item = cart.find(i=>i.id===id);
+  if(item){item.qty++;}
+  else{
+    const prod = products.find(p=>p.id===id);
+    cart.push({...prod,qty:1});
+  }
+  localStorage.setItem('cart',JSON.stringify(cart));
+  updateCartCount();
+  alert('Added to cart!');
+}
+
+function updateCartCount(){
+  document.getElementById('cartCount').textContent = cart.reduce((a,b)=>a+b.qty,0);
+}
+
+window.showPage = function(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(page).classList.add('active');
+  if(page==='cart') renderCart();
+  if(page==='admin') loadAdminData();
+}
+
+function renderCart(){
+  if(cart.length===0){
+    document.getElementById('cartItems').innerHTML = '<p>Your cart is empty</p>';
+    document.getElementById('proceedBtn').style.display='none';
+    return;
+  }
+  document.getElementById('proceedBtn').style.display='block';
+  document.getElementById('cartItems').innerHTML = cart.map(i=>`
+    <div style="padding:12px;border-bottom:1px solid #eee;">
+      <strong>${i.name}</strong> - ₦${i.price.toLocaleString()} x${i.qty}
+      <button onclick="removeItem('${i.id}')" style="float:right;color:red;border:none;background:none;">Remove</button>
+    </div>
+  `).join('');
+  const total = cart.reduce((a,b)=>a+b.price*b.qty,0);
+  document.getElementById('cartTotal').textContent = 'Total: ₦' + total.toLocaleString();
+}
+
+window.removeItem = function(id){
+  cart = cart.filter(i=>i.id!==id);
+  localStorage.setItem('cart',JSON.stringify(cart));
+  updateCartCount();
+  renderCart();
+}
+
+window.showCheckoutForm = function(){
+  document.getElementById('checkoutForm').style.display='block';
+  document.getElementById('proceedBtn').style.display='none';
+}
+
+window.previewProof = function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    proofData = e.target.result;
+    document.getElementById('proofPreview').src = proofData;
+    document.getElementById('proofPreview').style.display='block';
+  }
+  reader.readAsDataURL(file);
+}
+
+window.submitOrder = function(){
+  const name = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const address = document.getElementById('custAddress').value.trim();
+  if(!name||!phone||!address){alert('Fill all fields');return;}
+  if(!proofData){alert('Upload proof');return;}
+
+  const total = cart.reduce((a,b)=>a+b.price*b.qty,0);
+  const orderId = Date.now();
+
+  orders.unshift({
+    id:orderId, customerName:name, customerPhone:phone, customerAddress:address,
+    items:cart, total, proof:proofData, status:'Pending', date:new Date().toLocaleString()
+  });
+  localStorage.setItem('orders',JSON.stringify(orders));
+  alert('Order submitted!');
+  cart = [];
+  localStorage.setItem('cart',JSON.stringify(cart));
+  updateCartCount();
+  showPage('home');
+}
+
+// ADMIN FUNCTIONS
+window.adminLogin = function(){
+  const email = document.getElementById('adminEmail').value;
+  const pass = document.getElementById('adminPass').value;
+  signInWithEmailAndPassword(auth, email, pass)
+  .then(() => showPage('admin'))
+  .catch(err => alert(err.message));
+}
+
+window.logout = function(){
+  signOut(auth).then(() => showPage('home'));
+}
+
+window.checkAuthState = function(){
+  onAuthStateChanged(auth, (user) => {
+    if(user && user.email === ADMIN_EMAIL){
+      showPage('admin');
+    } else {
+      showPage('adminLogin');
+    }
+  });
+}
+
+window.toggleProductForm = function(){
+  document.getElementById('productForm').style.display = 'block';
+}
+
+window.cancelEdit = function(){
+  editingId = null;
+  document.getElementById('productForm').style.display = 'none';
+  document.getElementById('prodName').value = '';
+  document.getElementById('prodPrice').value = '';
+  document.getElementById('prodImg').value = '';
+  document.getElementById('formTitle').innerText = 'Add Product';
+  document.getElementById('submitBtn').innerText = 'Add Product';
+}
+
+window.saveProduct = async function(){
+  const name = document.getElementById('prodName').value.trim();
+  const price = document.getElementById('prodPrice').value;
+  const img = document.getElementById('prodImg').value.trim();
+  if(!name||!price||!img){alert('Fill all fields');return;}
+
+  if(editingId){
+    await updateDoc(doc(db, 'products', editingId), {name, price: Number(price), img});
+  } else {
+    await addDoc(collection(db, 'products'), {name, price: Number(price), img});
+  }
+  cancelEdit();
+  await loadProductsFromFirestore();
+  loadAdminData();
+}
+
+window.loadAdminData = async function(){
+  document.getElementById('adminProducts').innerHTML = products.map(p=>`
+    <div style="padding:12px;border-bottom:1px solid #eee;">
+      <strong>${p.name}</strong> - ₦${p.price}
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button class="btn-small btn-edit" onclick="editProduct('${p.id}')">Edit</button>
+        <button class="btn-small btn-delete" onclick="deleteProduct('${p.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('ordersTab').innerHTML = orders.length===0?'<p>No orders</p>':orders.map(o=>`
+    <div class="order-item">
+      <h4>Order #${o.id} - <span class="status-badge status-${o.status.toLowerCase()}">${o.status}</span></h4>
+      <div class="customer-info">
+        <p><strong>Customer:</strong> ${o.customerName}</p>
+        <p><strong>Phone:</strong> ${o.customerPhone}</p>
+        <p><strong>Address:</strong> ${o.customerAddress}</p>
+      </div>
+      <p><strong>Total:</strong> ₦${o.total.toLocaleString()}</p>
+      <img src="${o.proof}" style="max-width:200px;border-radius:8px;">
+      <select onchange="updateOrderStatus(${o.id},this.value)" style="margin-top:10px;width:100%;padding:10px;">
+        <option ${o.status==='Pending'?'selected':''}>Pending</option>
+        <option ${o.status==='Confirmed'?'selected':''}>Confirmed</option>
+        <option ${o.status==='Rejected'?'selected':''}>Rejected</option>
+      </select>
+    </div>
+  `).join('');
+}
+
+window.editProduct = function(id){
+  const p = products.find(x=>x.id===id);
+  editingId = id;
+  document.getElementById('productForm').style.display = 'block';
+  document.getElementById('prodName').value = p.name;
+  document.getElementById('prodPrice').value = p.price;
+  document.getElementById('prodImg').value = p.img;
+  document.getElementById('formTitle').innerText = 'Edit Product';
+  document.getElementById('submitBtn').innerText = 'Update Product';
+}
+
+window.deleteProduct = async function(id){
+  if(confirm('Delete this product?')){
+    await deleteDoc(doc(db, 'products', id));
+    await loadProductsFromFirestore();
+    loadAdminData();
+  }
+}
+
+window.updateOrderStatus = function(id,status){
+  orders = orders.map(o=>o.id===id?{...o,status}:o);
+  localStorage.setItem('orders',JSON.stringify(orders));
+  loadAdminData();
+}
+
+init();
+</script>
+
+</body>
+</html>
